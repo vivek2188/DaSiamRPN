@@ -89,17 +89,24 @@ class VOT(object):
         """
         assert(region_format in ['rectangle', 'polygon'])
         if TRAX:
-            options = trax.server.ServerOptions(region_format, trax.image.PATH)
-            self._trax = trax.server.Server(options)
-
+            self._trax = trax.server.Server(region_format.split(','), trax.image.Image.PATH.split(','))
             request = self._trax.wait()
             assert(request.type == 'initialize')
-            if request.region.type == 'polygon':
-                self._region = Polygon([Point(x[0], x[1]) for x in request.region.points])
+
+            if request.region.type() == 'POLYGON':
+				points = []
+				for i in range(request.region.size()):
+					x = request.region.get(i)
+					points.append([Point(x[0], x[1])])
+				self._region = Polygon(points)
             else:
                 self._region = Rectangle(request.region.x, request.region.y, request.region.width, request.region.height)
-            self._image = str(request.image)
+	        
+            self._image = [x.path() for k, x in request.image.items()]
+            if len(self._image) == 1:
+                self._image = self._image[0]
             self._trax.status(request.region)
+	
         else:
             self._files = [x.strip('\n') for x in open('images.txt', 'r').readlines()]
             self._frame = 0
@@ -129,7 +136,7 @@ class VOT(object):
             if isinstance(region, Polygon):
                 tregion = trax.region.Polygon([(x.x, x.y) for x in region.points])
             else:
-                tregion = trax.region.Rectangle(region.x, region.y, region.width, region.height)
+                tregion = trax.region.Rectangle.create(region.x, region.y, region.width, region.height)
             self._trax.status(tregion, {"confidence" : confidence})
         else:
             self._result.append(region)
@@ -144,14 +151,17 @@ class VOT(object):
         """
         if TRAX:
             if hasattr(self, "_image"):
-                image = str(self._image)
+                image = self._image
                 del self._image
                 return image
 
             request = self._trax.wait()
 
             if request.type == 'frame':
-                return str(request.image)
+                img = [x.path() for k, x in request.image.items()]
+                if len(img) == 1:
+                	img = img[0]
+                return img
             else:
                 return None
 
@@ -171,4 +181,3 @@ class VOT(object):
 
     def __del__(self):
         self.quit()
-
