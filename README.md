@@ -1,3 +1,5 @@
+This repository has been modified to make it compatible with the current version of Trax 2.0.1
+
 :trophy:News: **We won the VOT-18 real-time challenge**
 
 :trophy:News: **We won the second place in the VOT-18 long-term challenge**
